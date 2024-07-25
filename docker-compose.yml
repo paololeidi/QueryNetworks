@@ -38,6 +38,8 @@ services:
 
   postgres:
     image: postgres
+    environment:
+      POSTGRES_PASSWORD: 'password'
   
   ksqldb-server:
     image: confluentinc/ksqldb-server:0.29.0

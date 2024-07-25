@@ -15,6 +15,7 @@ WITH ( connector = 'kafka', topic = 'stress', properties.bootstrap.server = 'bro
 
 KAFKA
 docker exec -it broker /bin/bash
+kafka-console-consumer --bootstrap-server localhost:19092 --topic name
 
 ksql cli
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
