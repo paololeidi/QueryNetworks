@@ -1,0 +1,88 @@
+CREATE SOURCE stressStream (
+    timestamp timestamp,
+    id int,
+    status varchar,
+    stressLevel int)
+WITH (
+    connector = 'kafka',
+    topic = 'stress',
+    properties.bootstrap.server = 'broker:9092',
+    scan.startup.mode = 'latest' )
+FORMAT PLAIN ENCODE CSV ( without_header = 'true', delimiter = ',' );
+
+CREATE MATERIALIZED VIEW query4result AS
+    SELECT
+        window_start as windowOpen,
+        window_end as windowClose,
+        id,
+        max(stressLevel) as maxStress
+    FROM TUMBLE (stressStream, timestamp, INTERVAL '2 SECONDS')
+    GROUP BY window_start, window_end, id;
+
+CREATE SINK query4sink FROM query4result
+WITH (
+    connector='kafka',
+    properties.bootstrap.server='broker:9092',
+    topic='output')
+FORMAT PLAIN ENCODE JSON (force_append_only='true');
+
+Level 2 ------------------------------------------------------------------------------------------------------
+
+CREATE SOURCE outputStream (
+    windowOpen timestamp,
+    windowClose timestamp,
+    id int,
+    maxStress int)
+WITH (
+    connector = 'kafka',
+    topic = 'output',
+    properties.bootstrap.server = 'broker:9092',
+    scan.startup.mode = 'latest' )
+FORMAT PLAIN ENCODE JSON;
+
+CREATE MATERIALIZED VIEW query4_2result AS
+SELECT
+    window_start as windowOpen,
+    window_end as windowClose,
+    id,
+    max(maxStress) as maxStress
+FROM HOP (outputStream, windowClose, INTERVAL '2 SECONDS', INTERVAL '4 SECONDS')
+GROUP BY window_start, window_end, id;
+
+CREATE SINK query4_2sink FROM query4_2result
+WITH (
+    connector='kafka',
+    properties.bootstrap.server='broker:9092',
+    topic='output2')
+FORMAT PLAIN ENCODE JSON (force_append_only='true');
+
+Level 3 ------------------------------------------------------------------------------------------------------
+
+CREATE SOURCE outputStream2 (
+    windowOpen timestamp,
+    windowClose timestamp,
+    id int,
+    maxStress int)
+WITH (
+    connector = 'kafka',
+    topic = 'output2',
+    properties.bootstrap.server = 'broker:9092',
+    scan.startup.mode = 'latest' )
+FORMAT PLAIN ENCODE JSON;
+
+CREATE MATERIALIZED VIEW query4_3result AS
+SELECT
+    window_start as windowOpen,
+    window_end as windowClose,
+    id,
+    max(maxStress) as maxStress
+FROM TUMBLE (outputStream, windowClose, INTERVAL '10 SECONDS')
+GROUP BY window_start, window_end, id;
+
+CREATE SINK query4_3sink FROM query4_3result
+WITH (
+    connector='kafka',
+    properties.bootstrap.server='broker:9092',
+    topic='output3')
+FORMAT PLAIN ENCODE JSON (force_append_only='true');
+
