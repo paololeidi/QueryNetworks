@@ -86,3 +86,54 @@ WITH (
     topic='output3')
 FORMAT PLAIN ENCODE JSON (force_append_only='true');
 
+
+SELECT
+    *,
+    first_value(timestamp) OVER (
+        PARTITION BY id ORDER BY timestamp
+        SESSION WITH GAP INTERVAL '3 SECONDS'
+    ) AS window_start,
+    last_value(timestamp) OVER (
+        PARTITION BY id ORDER BY timestamp
+        SESSION WITH GAP INTERVAL '3 SECONDS'
+    ) AS window_end
+FROM stressStream;
+
+SELECT
+    window_start, window_end, id,
+    max(stressLevel) AS max_stress
+FROM (
+    SELECT
+        *,
+        first_value(timestamp) OVER (
+            PARTITION BY id ORDER BY timestamp
+            SESSION WITH GAP INTERVAL '3 SECONDS'
+        ) AS window_start,
+        last_value(timestamp) OVER (
+            PARTITION BY id ORDER BY timestamp
+            SESSION WITH GAP INTERVAL '3 SECONDS'
+        ) AS window_end
+    FROM stressStream
+)
+GROUP BY id, window_start, window_end
+ORDER BY id, window_start, window_end;
+
+
+SELECT
+    window_start, window_end,
+    max(stressLevel) AS max_stress
+FROM (
+    SELECT
+        *,
+        first_value(timestamp) OVER (
+            PARTITION BY 1 ORDER BY timestamp
+            SESSION WITH GAP INTERVAL '3 SECONDS'
+        ) AS window_start,
+        last_value(timestamp) OVER (
+            PARTITION BY 1 ORDER BY timestamp
+            SESSION WITH GAP INTERVAL '3 SECONDS'
+        ) AS window_end
+    FROM stressStream
+)
+GROUP BY window_start, window_end
+ORDER BY window_start, window_end;
