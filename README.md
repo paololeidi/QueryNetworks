@@ -22,7 +22,15 @@ docker exec -it querynetworks-postgres-1 /bin/bash
 psql -h risingwave -p 4566 -d dev -U root
 
 CREATE SOURCE stressStream (timestamp timestamp, id int, status varchar, stressLevel int)
-WITH ( connector = 'kafka', topic = 'stress', properties.bootstrap.server = 'broker:9092', scan.startup.mode = 'latest' ) FORMAT PLAIN ENCODE CSV ( without_header = 'true', delimiter = ',' );
+WITH (
+connector = 'kafka',
+topic = 'stress',
+properties.bootstrap.server = 'broker:9092',
+scan.startup.mode = 'latest'
+) FORMAT PLAIN ENCODE CSV (
+without_header = 'true',
+delimiter = ','
+);
 
 CREATE SOURCE weightStream (timestamp timestamp, id int, weight double)
 WITH (
